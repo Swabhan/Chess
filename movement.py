@@ -1,8 +1,13 @@
 import pygame
+import math
 
 pygame.init()
 
 win = pygame.display.set_mode((500, 500))
+moves = []
+
+def round_down_to_nearest_divisible(number, divisor):
+    return math.floor(number / divisor) * divisor
 
 class Movement:
 	def __init__(self, board):
@@ -14,52 +19,61 @@ class Movement:
 
 	def getPosition(self):
 		# gets coordinate of mouse click
+		numbers = [8, 7, 6, 5, 4, 3, 2, 1]
+		letters = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
+
 		pos = pygame.mouse.get_pos()
-		x = float(62.5 * round(pos[0]/62.5))
-		y = float(62.5 * round(pos[1]/62.5))
+
+		number = numbers[round(round_down_to_nearest_divisible(pos[1], 62.5) / 62.5)]
+		letter = letters[round(round_down_to_nearest_divisible(pos[0], 62.5) / 62.5)]
 
 
-		# Checks if a piece is in the coordinate
-		for i in self.board.values():
-			for value in i:
-				if value[0] == x:
-					if value[1] == y:
-						if value[3] != "None":
-							self.position = (x, y)
+		if self.board[letter][number][3] != None:
+			self.position = (letter, number)
+			self.clicked = True
+			self.piece = self.board[letter][number][3]
+	
+			return self.position
 
-							self.clicked = True
-							self.piece = value[3]
-
-				else:
-					continue
-			
-		return self.position
-
-		
+		self.removeSelection((1, 1), (1, 1))
+		return None
 
 		
 	def movePosition(self):
 		# gets coordinate of mouse click if there is a value in self.position
 		if self.position != None:
+			numbers = [8, 7, 6, 5, 4, 3, 2, 1]
+			letters = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
+
 			pos = pygame.mouse.get_pos()
-			x = float(62.5 * round( pos[0] / 62.5))
-			y = float(62.5 * round( pos[1] / 62.5))
+
+			number = numbers[round(round_down_to_nearest_divisible(pos[1], 62.5) / 62.5)]
+			letter = letters[round(round_down_to_nearest_divisible(pos[0], 62.5) / 62.5)]
 
 
-			self.moveTo = (x, y)
+			self.moveTo = (letter, number)
 			
 			return self.moveTo
 
-	def checkSquare(self, currentPosition, position, piece):
-		for i in self.board.values():
-			for value in i:
-					if value[0] == position[0]:
-						if value[1] == position[1]:					
-							if value[3] == "None" or piece[0] != value[3][0]:
-								self.reasignCoordinates(currentPosition, position, piece)
-								
-								self.cleanBoard(self.moveTo, self.position)
+	def checkSquare(self, curLet, curNum, letter, number, pieceColor):
+		#Check if square is open
+		if self.board[letter][number] is None or pieceColor != self.board[letter][number][2]:
+			# Record moves
+			move_str = self.board[curLet][curNum][3][2] + letter + str(number)
+			if self.board[curLet][curNum][3][1:] == "knight":
+				move_str = 'n' + move_str[1:]
+
+			if self.board[letter][number] is not None and pieceColor != self.board[letter][number][2]:
+				# Capture move: add 'x' to the move
+				moves.append(move_str[0] + 'x' + move_str[1:])
+			else:
+				moves.append(move_str)
+
+
+			self.reasignCoordinates(curLet, curNum, letter, number)
+			self.cleanBoard(self.moveTo, self.position)
 			
+			print(moves)
 
 	def reset(self):
 		# resets variable for the next turn
@@ -68,172 +82,155 @@ class Movement:
 		self.clicked = False
 
 	def removeSelection(self, position, currentPosition):
-		if currentPosition[1] - position[1] == 0 and currentPosition[0] - position[0] == 0:
+		if currentPosition[1] - position[1] == 0 and currentPosition[0] == position[0]:
 				self.reset()
 				self.cleanBoard(position, currentPosition)
 
 	def cleanBoard(self, position, currentPosition):
-		#cleans color changes and pieces if movement is successful
-		for i in self.board.values():
-			for value in i:
-				if value[0] == currentPosition[0]:
-					if value[1] == currentPosition[1]:
-						if value[4] == 'sb':
-							pygame.draw.rect(win, (238,238,210), (value[0], value[1], 62.5, 62.5))
-						else:
-							pygame.draw.rect(win, (118,150,86), (value[0], value[1], 62.5, 62.5))
-						
-						self.reset() 
+		#cleans former position's color and removes piece if movement is successful
+		letter = currentPosition[0]
+		number = currentPosition[1]
 
-	def reasignCoordinates(self, currentPosition, position, piece):
-	#Reassigning coordinates for changes in board
-		for i in self.board.values():
-			for value in i:
-				if value[0] == currentPosition[0]:
-					if value[1] == currentPosition[1]:					
-						value[3] = "None"
-						value[2] = "None"
 
-		for i in self.board.values():
-			for value in i:
-				if value[0] == position[0]:
-					if value[1] == position[1]:
-						value[3] = piece
-						value[2] = 'b'
+		if self.board[letter][number][4] == 'sb':
+			pygame.draw.rect(win, (118,150,86), (self.board[letter][number][0], self.board[letter][number][1], 62.5, 62.5))
+		else:
+			pygame.draw.rect(win, (238,238,210), (self.board[letter][number][0], self.board[letter][number][1], 62.5, 62.5))
+		
+		self.reset()
 
-	# Movement for each piece
+
+
+	def reasignCoordinates(self, curLet, curNum, letter, number):
+		#Reassigning coordinates for changes in board
+		#Move Piece
+		self.board[letter][number][2] = self.board[curLet][curNum][2]
+		self.board[letter][number][3] = self.board[curLet][curNum][3]
+
+		#Remove Piece
+		self.board[curLet][curNum][2] = None
+		self.board[curLet][curNum][3] = None
+
+	
 	def pawns(self, position, currentPosition, piece):
-		#Movement of pawns
+		# Movement of pawns
 		if piece == "bpawn":
-			if currentPosition[1] == 375: #If pawn is in starting spot
-				if currentPosition[1] - position[1] <= 125 and currentPosition[1] - position[1] >= 0 and currentPosition[0] - position[0] == 0:
-					self.checkSquare(currentPosition, position, piece)
+			if currentPosition[1] == 7:  # If pawn is in starting row
+				# Double or single space move
+				if position[1] == 5 or position[1] == 6 and currentPosition[0] == position[0]:
+					self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
+				# Diagonal capture
+				elif abs(ord(currentPosition[0]) - ord(position[0])) == 1 and currentPosition[1] - position[1] == 1:
+					self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
+
 			else:
-				if currentPosition[1] - position[1] <= 62.5 and currentPosition[1] - position[1] >= 0 and currentPosition[0] - position[0] == 0:
-					self.checkSquare(currentPosition, position, piece)
-			if currentPosition[1] - position[1] == 0 and currentPosition[0] - position[0] == 0:
+				# Single space move
+				if currentPosition[1] - position[1] == 1 and currentPosition[0] == position[0]:
+					self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
+				# Diagonal capture
+				elif abs(ord(currentPosition[0]) - ord(position[0])) == 1 and currentPosition[1] - position[1] == 1:
+					self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
+
+			if currentPosition[1] == position[1] and currentPosition[0] == position[0]:
 				self.removeSelection(position, currentPosition)
 
 		else:
-			if currentPosition[1] == 62.5: #If pawn is in starting spot
-				if position[1] - currentPosition[1] <= 125 and position[1] - currentPosition[1] >= 0 and currentPosition[0] - position[0] == 0:
-					self.checkSquare(currentPosition, position, piece)
+			if currentPosition[1] == 2:  # If pawn is in starting spot
+				if position[1] == 4 or position[1] == 3 and currentPosition[0] == position[0]:
+					self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
+				# Diagonal capture
+				elif abs(ord(currentPosition[0]) - ord(position[0])) == 1 and position[1] - currentPosition[1] == 1:
+					self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
+
 			else:
-				if position[1] - currentPosition[1] <= 62.5 and position[1] - currentPosition[1] >= 0 and currentPosition[0] - position[0] == 0:
-					self.checkSquare(currentPosition, position, piece)
-			if currentPosition[1] - position[1] == 0 and currentPosition[0] - position[0] == 0:
+				# Single space move
+				if position[1] - currentPosition[1] == 1 and currentPosition[0] == position[0]:
+					self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
+
+				# Diagonal capture
+				elif abs(ord(currentPosition[0]) - ord(position[0])) == 1 and position[1] - currentPosition[1] == 1:
+					self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
+
+			if currentPosition[1] == position[1] and currentPosition[0] == position[0]:
 				self.removeSelection(position, currentPosition)
 
-		#Capturing pieces
 		
 
 
 	def rooks(self, position, currentPosition, piece):
-		if piece == "brook":
-			if currentPosition[0] - position[0] == 0 and currentPosition[1] - position[1] != 0: #Up and down
-				self.checkSquare(currentPosition, position, piece)
-			elif currentPosition[1] - position[1] == 0 and position[0] - currentPosition[0] != 0: #Left and right
-				self.checkSquare(currentPosition, position, piece)
-			if currentPosition[1] - position[1] == 0 and currentPosition[0] - position[0] == 0:
+		if piece == "brook" or piece == "wrook":
+			# Calculate the absolute differences in the x and y coordinates
+			dx = abs(ord(currentPosition[0]) - ord(position[0]))
+			dy = abs(int(currentPosition[1]) - int(position[1]))
+
+			# Check if the move is either horizontal (dx == 0 and dy != 0) or vertical (dx != 0 and dy == 0)
+			if (dx == 0 and dy != 0) or (dx != 0 and dy == 0):
+				self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
+
+			if currentPosition[1] - position[1] == 0 and currentPosition[0] == position[0]:
 				self.removeSelection(position, currentPosition)
-		else:
-			if currentPosition[0] - position[0] == 0 and currentPosition[1] - position[1] != 0: #Up and down
-				self.checkSquare(currentPosition, position, piece)
-			elif currentPosition[1] - position[1] == 0 and position[0] - currentPosition[0] != 0: #Left and right
-				self.checkSquare(currentPosition, position, piece)
-			if currentPosition[1] - position[1] == 0 and currentPosition[0] - position[0] == 0:
-				self.removeSelection(position, currentPosition)
+
 
 
 	def knights(self, position, currentPosition, piece):
-		if piece == "bknight":
-			if (currentPosition[1] - position[1] == 125) and (currentPosition[0] - position[0] == 62.5 or position[0] - currentPosition[0] == 62.5): #Up 3 +- 1
-				self.checkSquare(currentPosition, position, piece)
-			elif (currentPosition[1] - position[1] == -125) and (currentPosition[0] - position[0] == 62.5 or position[0] - currentPosition[0] == 62.5): #Down 3 +- 1
-				self.checkSquare(currentPosition, position, piece)
-			elif (currentPosition[0] - position[0] == 125) and (currentPosition[1] - position[1] == 62.5 or position[1] - currentPosition[1] == 62.5): #Left 3 +- 1
-				self.checkSquare(currentPosition, position, piece)
-			elif (currentPosition[0] - position[0] == -125) and (currentPosition[1] - position[1] == 62.5 or position[1] - currentPosition[1] == 62.5): #Right 3 +- 1
-				self.checkSquare(currentPosition, position, piece)
-			if currentPosition[1] - position[1] == 0 and currentPosition[0] - position[0] == 0:
-				self.removeSelection(position, currentPosition)
-		else:
-			if (currentPosition[1] - position[1] == 125) and (currentPosition[0] - position[0] == 62.5 or position[0] - currentPosition[0] == 62.5): #Up 3 +- 1
-				self.checkSquare(currentPosition, position, piece)
-			elif (currentPosition[1] - position[1] == -125) and (currentPosition[0] - position[0] == 62.5 or position[0] - currentPosition[0] == 62.5): #Down 3 +- 1
-				self.checkSquare(currentPosition, position, piece)
-			elif (currentPosition[0] - position[0] == 125) and (currentPosition[1] - position[1] == 62.5 or position[1] - currentPosition[1] == 62.5): #Left 3 +- 1
-				self.checkSquare(currentPosition, position, piece)
-			elif (currentPosition[0] - position[0] == -125) and (currentPosition[1] - position[1] == 62.5 or position[1] - currentPosition[1] == 62.5): #Right 3 +- 1
-				self.checkSquare(currentPosition, position, piece)
-			if currentPosition[1] - position[1] == 0 and currentPosition[0] - position[0] == 0:
-				self.removeSelection(position, currentPosition)
+		dx = abs(ord(currentPosition[0]) - ord(position[0]))
+		dy = abs(int(currentPosition[1]) - int(position[1]))
+
+		# Check if the move is an "L" shape for knights
+		if (dx == 2 and dy == 1) or (dx == 1 and dy == 2):
+			self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
+
+		if currentPosition[1] - position[1] == 0 and currentPosition[0] == position[0]:
+			self.removeSelection(position, currentPosition)
+
+
+
 
 	def bishops(self, position, currentPosition, piece):
-		if piece == "bbishop":
-			if (currentPosition[1] - position[1]) == (currentPosition[0] - position[0]): #Diagonal left up or right down
-				self.checkSquare(currentPosition, position, piece)
-			elif (currentPosition[1] + currentPosition[0]) == (position[1] + position[0]): #Diagonal right up or right down
-				self.checkSquare(currentPosition, position, piece)
-			if currentPosition[1] - position[1] == 0 and currentPosition[0] - position[0] == 0:
-				self.removeSelection(position, currentPosition)
-		else:
-			if (currentPosition[1] - position[1]) == (currentPosition[0] - position[0]): #Diagonal left up or right down
-				self.checkSquare(currentPosition, position, piece)
-			elif (currentPosition[1] + currentPosition[0]) == (position[1] + position[0]): #Diagonal right up or right down
-				self.checkSquare(currentPosition, position, piece)
-			if currentPosition[1] - position[1] == 0 and currentPosition[0] - position[0] == 0:
-				self.removeSelection(position, currentPosition)
+		if piece == "bbishop" or piece == "wbishop":
+			# Calculate the differences in x and y coordinates
+			dx = abs(ord(currentPosition[0]) - ord(position[0]))
+			dy = abs(int(currentPosition[1]) - int(position[1]))
+		
+		# Check if the move is along a diagonal (equal magnitude of dx and dy)
+		if abs(dx) == abs(dy):
+			self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
+
+		
+		if currentPosition[1] - position[1] == 0 and currentPosition[0] == position[0]:
+			self.removeSelection(position, currentPosition)
+
 		
 
 
 	def queen(self, position, currentPosition, piece):
-		if piece == "bqueen":
-			if currentPosition[0] - position[0] == 0 and currentPosition[1] - position[1] != 0: #Up and down
-				self.checkSquare(currentPosition, position, piece)
-			elif currentPosition[1] - position[1] == 0 and position[0] - currentPosition[0] != 0: #Left and right
-				self.checkSquare(currentPosition, position, piece)
-			elif (currentPosition[1] - position[1]) == (currentPosition[0] - position[0]): #Diagonal left up or right down
-				self.checkSquare(currentPosition, position, piece)
-			elif (currentPosition[1] + currentPosition[0]) == (position[1] + position[0]): #Diagonal right up or right down
-				self.checkSquare(currentPosition, position, piece)
-			if currentPosition[1] - position[1] == 0 and currentPosition[0] - position[0] == 0:
-				self.removeSelection(position, currentPosition)
-		else:
-			if currentPosition[0] - position[0] == 0 and currentPosition[1] - position[1] != 0: #Up and down
-				self.checkSquare(currentPosition, position, piece)
-			elif currentPosition[1] - position[1] == 0 and position[0] - currentPosition[0] != 0: #Left and right
-				self.checkSquare(currentPosition, position, piece)
-			elif (currentPosition[1] - position[1]) == (currentPosition[0] - position[0]): #Diagonal left up or right down
-				self.checkSquare(currentPosition, position, piece)
-			elif (currentPosition[1] + currentPosition[0]) == (position[1] + position[0]): #Diagonal right up or right down
-				self.checkSquare(currentPosition, position, piece)			
-			if currentPosition[1] - position[1] == 0 and currentPosition[0] - position[0] == 0:
+		if piece == "bqueen" or piece == "wqueen":
+			# Calculate the differences in x and y coordinates
+			dx = abs(ord(currentPosition[0]) - ord(position[0]))
+			dy = abs(int(currentPosition[1]) - int(position[1]))
+
+			# Check if the move is along a diagonal (equal magnitude of dx and dy)
+			if abs(dx) == abs(dy):
+				self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
+				# Check if the move is either horizontal (dx == 0 and dy != 0) or vertical (dx != 0 and dy == 0)
+			elif (dx == 0 and dy != 0) or (dx != 0 and dy == 0):
+				self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
+
+			if currentPosition[1] - position[1] == 0 and currentPosition[0] == position[0]:
 				self.removeSelection(position, currentPosition)
 
-		
+
 	def king(self, position, currentPosition, piece):
-		if piece == "bking":
-			if currentPosition[0] - position[0] == 0 and (currentPosition[1] - position[1] == 62.5 or currentPosition[1] - position[1] == -62.5): #Up and down
-				self.checkSquare(currentPosition, position, piece)
-			elif currentPosition[1] - position[1] == 0 and (position[0] - currentPosition[0] == 62.5 or position[0] - currentPosition[0] == -62.5): #Left and right
-				self.checkSquare(currentPosition, position, piece)
-			elif ((currentPosition[1] - position[1]) == (currentPosition[0] - position[0])) and (currentPosition[1] - position[1] == 62.5 or currentPosition[0] - position[0] == -62.5): #Diagonal left up or right down
-				self.checkSquare(currentPosition, position, piece)
-			elif (currentPosition[1] + currentPosition[0]) == (position[1] + position[0]) and (position[1] - currentPosition[1] == -62.5 or position[0] - currentPosition[0] == -62.5): #Diagonal right up or right down
-				self.checkSquare(currentPosition, position, piece)
-			if currentPosition[1] - position[1] == 0 and currentPosition[0] - position[0] == 0:
-				self.removeSelection(position, currentPosition)
-		else:
-			if currentPosition[0] - position[0] == 0 and (currentPosition[1] - position[1] == 62.5 or currentPosition[1] - position[1] == -62.5): #Up and down
-				self.checkSquare(currentPosition, position, piece)
-			elif currentPosition[1] - position[1] == 0 and (position[0] - currentPosition[0] == 62.5 or position[0] - currentPosition[0] == -62.5): #Left and right
-				self.checkSquare(currentPosition, position, piece)
-			elif ((currentPosition[1] - position[1]) == (currentPosition[0] - position[0])) and (currentPosition[1] - position[1] == 62.5 or currentPosition[0] - position[0] == -62.5): #Diagonal left up or right down
-				self.checkSquare(currentPosition, position, piece)
-			elif (currentPosition[1] + currentPosition[0]) == (position[1] + position[0]) and (position[1] - currentPosition[1] == -62.5 or position[0] - currentPosition[0] == -62.5): #Diagonal right up or right down
-				self.checkSquare(currentPosition, position, piece)
-			if currentPosition[1] - position[1] == 0 and currentPosition[0] - position[0] == 0:
+		if piece == "bking" or piece == "wking":
+			# Calculate the differences in x and y coordinates
+			dx = abs(ord(currentPosition[0]) - ord(position[0]))
+			dy = abs(int(currentPosition[1]) - int(position[1]))
+
+			# Check if the move is only one square away horizontally, vertically, or diagonally
+			if dx <= 1 and dy <= 1:
+				self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
+
+			if currentPosition[0] == position[0] and currentPosition[1] == position[1]:
 				self.removeSelection(position, currentPosition)
 
 	
