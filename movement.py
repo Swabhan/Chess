@@ -24,8 +24,11 @@ class Movement:
 
 		pos = pygame.mouse.get_pos()
 
-		number = numbers[round(round_down_to_nearest_divisible(pos[1], 62.5) / 62.5)]
-		letter = letters[round(round_down_to_nearest_divisible(pos[0], 62.5) / 62.5)]
+		row = min(max(pos[1] // 62.5, 0), 7)
+		col = min(max(pos[0] // 62.5, 0), 7)
+
+		number = numbers[int(row)]
+		letter = letters[int(col)]
 
 
 		if self.board[letter][number][3] != None:
@@ -47,8 +50,11 @@ class Movement:
 
 			pos = pygame.mouse.get_pos()
 
-			number = numbers[round(round_down_to_nearest_divisible(pos[1], 62.5) / 62.5)]
-			letter = letters[round(round_down_to_nearest_divisible(pos[0], 62.5) / 62.5)]
+			row = min(max(pos[1] // 62.5, 0), 7)
+			col = min(max(pos[0] // 62.5, 0), 7)
+
+			number = numbers[int(row)]
+			letter = letters[int(col)]
 
 
 			self.moveTo = (letter, number)
@@ -58,22 +64,9 @@ class Movement:
 	def checkSquare(self, curLet, curNum, letter, number, pieceColor):
 		#Check if square is open
 		if self.board[letter][number] is None or pieceColor != self.board[letter][number][2]:
-			# Record moves
-			move_str = self.board[curLet][curNum][3][2] + letter + str(number)
-			if self.board[curLet][curNum][3][1:] == "knight":
-				move_str = 'n' + move_str[1:]
-
-			if self.board[letter][number] is not None and pieceColor != self.board[letter][number][2]:
-				# Capture move: add 'x' to the move
-				moves.append(move_str[0] + 'x' + move_str[1:])
-			else:
-				moves.append(move_str)
-
-
 			self.reasignCoordinates(curLet, curNum, letter, number)
 			self.cleanBoard(self.moveTo, self.position)
 			
-			print(moves)
 
 	def reset(self):
 		# resets variable for the next turn
@@ -121,7 +114,8 @@ class Movement:
 					self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
 				# Diagonal capture
 				elif abs(ord(currentPosition[0]) - ord(position[0])) == 1 and currentPosition[1] - position[1] == 1:
-					self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
+					if self.board[position[0]][position[1]][2] == 'w':
+						self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
 
 			else:
 				# Single space move
@@ -129,7 +123,8 @@ class Movement:
 					self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
 				# Diagonal capture
 				elif abs(ord(currentPosition[0]) - ord(position[0])) == 1 and currentPosition[1] - position[1] == 1:
-					self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
+					if self.board[position[0]][position[1]][2] == 'w':
+						self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
 
 			if currentPosition[1] == position[1] and currentPosition[0] == position[0]:
 				self.removeSelection(position, currentPosition)
@@ -140,7 +135,8 @@ class Movement:
 					self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
 				# Diagonal capture
 				elif abs(ord(currentPosition[0]) - ord(position[0])) == 1 and position[1] - currentPosition[1] == 1:
-					self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
+					if self.board[position[0]][position[1]][2] == 'b':
+						self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
 
 			else:
 				# Single space move
@@ -149,7 +145,8 @@ class Movement:
 
 				# Diagonal capture
 				elif abs(ord(currentPosition[0]) - ord(position[0])) == 1 and position[1] - currentPosition[1] == 1:
-					self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
+					if self.board[position[0]][position[1]][2] == 'b':
+						self.checkSquare(currentPosition[0], currentPosition[1], position[0], position[1], self.board[currentPosition[0]][currentPosition[1]][2])
 
 			if currentPosition[1] == position[1] and currentPosition[0] == position[0]:
 				self.removeSelection(position, currentPosition)
