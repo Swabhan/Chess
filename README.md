@@ -18,3 +18,4 @@
 
 <h2>Screenshots</h2>
 <img src="https://swabhan.github.io/chess.png" alt="Chess Game Screenshot" width="500">
+<img width="499" alt="image" src="https://github.com/Swabhan/Chess/assets/46286853/35358163-781a-4d79-8f0e-7ab6fa7c883c">
