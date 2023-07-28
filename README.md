@@ -15,3 +15,6 @@
   
   <li><strong>Castling:</strong> The game supports castling, a special move involving the king and a rook. If the conditions for castling are met, players can perform this move to enhance the king's safety and activate the rook.</li>
 </ul>
+
+<h2>Screenshots</h2>
+<img src="https://swabhan.github.io/chess.png" alt="Chess Game Screenshot" width="500">
