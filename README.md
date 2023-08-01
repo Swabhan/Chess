@@ -19,6 +19,8 @@
 
   
   <li><strong>Castling:</strong> The game supports castling, a special move involving the king and a rook. If the conditions for castling are met, players can perform this move to enhance the king's safety and activate the rook.</li>
+
+  <li><strong>Bots:</strong> Play against bots! In collaboration with my Chess Bot API(currently under development), play against calculated moves.</li>
 </ul>
 
 <h2>Screenshots</h2>
